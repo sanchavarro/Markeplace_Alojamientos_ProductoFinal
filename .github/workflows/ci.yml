@@ -1,0 +1,52 @@
+name: CI backend
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  pruebas-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: marketplace
+          POSTGRES_PASSWORD: MarketplaceLR2026
+          POSTGRES_DB: marketplace_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U marketplace"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # SonarCloud necesita el historial completo
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compilar, probar y medir cobertura (JaCoCo)
+        run: ./mvnw -B test
+      - name: Guardar el reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-jacoco
+          path: backend/target/site/jacoco/
+      # SonarCloud (MKT-99): se activa solo cuando el repositorio tiene el secreto SONAR_TOKEN
+      - name: Análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: ./mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar

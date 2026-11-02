@@ -1,0 +1,32 @@
+# Secretos y credenciales
+.env
+.env.*
+!.env.example
+backend/src/main/resources/*.json
+*.pem
+*.key
+
+# Java / Maven
+backend/target/
+
+# Imágenes subidas en local y logs
+backend/uploads/
+backend/logs/
+*.class
+*.log
+HELP.md
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE y sistema
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.factorypath
+.vscode/
+.DS_Store
+
