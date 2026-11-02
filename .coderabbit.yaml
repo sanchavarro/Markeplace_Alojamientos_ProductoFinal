@@ -1,0 +1,42 @@
+# Revisión automática de los pull requests con CodeRabbit (MKT-99)
+# Documentación: https://docs.coderabbit.ai/guides/configure-coderabbit
+language: "es-ES"
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - "!**/target/**"
+    - "!docs/*.postman_collection.json"
+  path_instructions:
+    - path: "backend/src/main/java/**/controller/**"
+      instructions: >-
+        El controlador solo recibe el Request, llama a una interfaz ...ServiceAPI y arma la respuesta.
+        No debe tener lógica de negocio ni usar repositorios o adaptadores directamente (ADR-01).
+    - path: "backend/src/main/java/**/service/impl/**"
+      instructions: >-
+        Revisar que las acciones importantes registren auditoría en la misma transacción (ADR-06),
+        que las notificaciones salgan por el outbox y no directamente (ADR-07), y que la reserva use
+        bloqueo pesimista e idempotencia (ADR-02, ADR-03).
+    - path: "backend/src/main/java/**/entity/**"
+      instructions: >-
+        Entidades sin Lombok, con @Column explícito en snake_case, getters y setters escritos a mano
+        y dinero en BigDecimal.
+    - path: "backend/src/main/resources/**"
+      instructions: >-
+        Ninguna clave real en el código: la clave de Stripe, el secreto JWT de producción y la clave
+        del correo deben venir de variables de entorno.
+    - path: "backend/src/test/**"
+      instructions: >-
+        Las pruebas deben cubrir los ASR: concurrencia (una sola reserva), idempotencia (un solo cobro),
+        pasarela caída o lenta y bloqueo tras 5 intentos fallidos.
+chat:
+  auto_reply: true
