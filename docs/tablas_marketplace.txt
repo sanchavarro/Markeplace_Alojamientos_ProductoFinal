@@ -1,0 +1,335 @@
+MARKETPLACE DE ALOJAMIENTOS - INVERSIONES LR
+Tablas de la base de datos (PostgreSQL 17)
+==============================================================================
+
+CONEXIÓN LOCAL
+  Host: localhost   Puerto: 5432   Base: marketplace_db
+  Usuario: marketplace   Clave: MarketplaceLR2026
+  Crear la base: psql postgres -f docs/base_de_datos.sql
+  Las tablas las crea el backend al arrancar (cd backend && ./mvnw spring-boot:run).
+
+CÓMO LEER ESTE ARCHIVO
+  columna_bd   TIPO   (nombreEnJSON)   notas
+  - columna_bd: nombre en la base de datos (snake_case).
+  - nombreEnJSON: nombre del campo como llega en las respuestas de la API (camelCase).
+  - PK = llave primaria, FK = llave foránea, único = no se puede repetir.
+  - Dinero en pesos colombianos (COP). Fechas como "2026-12-20"; fecha-hora como "2026-12-20T15:30:00".
+
+TOTAL: 19 tablas
+
+------------------------------------------------------------------------------
+1. usuario   (entidad Usuario)
+   Usuario registrado (huésped, anfitrión o administrador).
+------------------------------------------------------------------------------
+   id                 BIGINT        (id)                PK, autoincremental
+   nombre             VARCHAR(120)  (nombre)            obligatorio
+   correo             VARCHAR(150)  (correo)            obligatorio, único
+   hash_contrasena    VARCHAR(255)  (nunca se envía)    obligatorio, clave cifrada con BCrypt
+   rol                VARCHAR(15)   (rol)               obligatorio
+   estado             VARCHAR(12)   (estado)            obligatorio
+   telefono           VARCHAR(20)   (telefono)          opcional (HU-05)
+   foto_url           VARCHAR(500)  (fotoUrl)           opcional (HU-05)
+   intentos_fallidos  INTEGER       (intentosFallidos)  obligatorio
+   bloqueado_hasta    TIMESTAMP     (bloqueadoHasta)    
+   creado_en          TIMESTAMP     (creadoEn)          obligatorio
+   Reglas (CHECK):
+     - rol IN ('HUESPED','ANFITRION','ADMINISTRADOR')
+     - estado IN ('ACTIVO','INACTIVO','RESTRINGIDO')
+     - intentos_fallidos >= 0
+
+------------------------------------------------------------------------------
+2. notificacion   (entidad Notificacion)
+   Notificación interna para un usuario (HU-36, HU-37).
+------------------------------------------------------------------------------
+   id          BIGINT        (id)         PK, autoincremental
+   usuario_id  BIGINT        (usuarioId)  obligatorio, FK → usuario.id
+   tipo        VARCHAR(40)   (tipo)       obligatorio
+   mensaje     VARCHAR(255)  (mensaje)    obligatorio
+   leida       BOOLEAN       (leida)      obligatorio
+   creada_en   TIMESTAMP     (creadaEn)   obligatorio
+   Reglas (CHECK):
+     - length(tipo) > 0
+
+------------------------------------------------------------------------------
+3. clave_idempotencia   (entidad ClaveIdempotencia)
+   Clave de idempotencia de una solicitud de reserva o pago (ADR-03). Se guarda 24 horas.
+------------------------------------------------------------------------------
+   clave       UUID       (clave)      PK
+   usuario_id  BIGINT     (usuarioId)  obligatorio, FK → usuario.id
+   reserva_id  BIGINT     (reservaId)  FK → reserva.id
+   respuesta   JSONB      (respuesta)  
+   expira_en   TIMESTAMP  (expiraEn)   obligatorio
+
+------------------------------------------------------------------------------
+4. politica_cancelacion   (entidad PoliticaCancelacion)
+   Política de cancelación (FLEXIBLE o ESTRICTA).
+------------------------------------------------------------------------------
+   id           BIGINT       (id)           PK, autoincremental
+   nombre       VARCHAR(60)  (nombre)       obligatorio
+   tipo         VARCHAR(12)  (tipo)         obligatorio
+   descripcion  TEXT         (descripcion)  
+   Reglas (CHECK):
+     - tipo IN ('FLEXIBLE','ESTRICTA')
+
+------------------------------------------------------------------------------
+5. servicio   (entidad Servicio)
+   Servicio incluido (wifi, parqueadero, piscina...).
+------------------------------------------------------------------------------
+   id      BIGINT       (id)      PK, autoincremental
+   nombre  VARCHAR(60)  (nombre)  obligatorio, único
+
+------------------------------------------------------------------------------
+6. alojamiento   (entidad Alojamiento)
+   Publicación de un alojamiento hecha por un anfitrión.
+------------------------------------------------------------------------------
+   id               BIGINT         (id)              PK, autoincremental
+   anfitrion_id     BIGINT         (anfitrionId)     obligatorio, FK → usuario.id
+   politica_id      BIGINT         (politicaId)      FK → politica_cancelacion.id
+   titulo           VARCHAR(120)   (titulo)          obligatorio
+   descripcion      TEXT           (descripcion)     
+   reglas           TEXT           (reglas)          opcional: reglas de la casa (HU-07)
+   ciudad           VARCHAR(80)    (ciudad)          obligatorio
+   direccion        VARCHAR(150)   (direccion)       
+   tipo             VARCHAR(40)    (tipo)            obligatorio
+   capacidad        INTEGER        (capacidad)       obligatorio
+   precio_noche     NUMERIC(12,2)  (precioNoche)     obligatorio
+   tarifa_limpieza  NUMERIC(12,2)  (tarifaLimpieza)  
+   modo_reserva     VARCHAR(12)    (modoReserva)     obligatorio
+   estado           VARCHAR(20)    (estado)          obligatorio
+   creado_en        TIMESTAMP      (creadoEn)        obligatorio
+   Reglas (CHECK):
+     - estado IN ('BORRADOR','PENDIENTE_REVISION','ACTIVA','PAUSADA','BLOQUEADA')
+     - modo_reserva IN ('INMEDIATA','APROBACION')
+     - capacidad > 0
+     - precio_noche > 0
+     - tarifa_limpieza IS NULL OR tarifa_limpieza >= 0
+
+------------------------------------------------------------------------------
+7. alojamiento_servicio   (entidad AlojamientoServicio)
+   Relación muchos a muchos entre alojamiento y servicio (servicios incluidos).
+------------------------------------------------------------------------------
+   alojamiento_id  BIGINT  (alojamientoId)  PK, FK → alojamiento.id
+   servicio_id     BIGINT  (servicioId)     PK, FK → servicio.id
+
+------------------------------------------------------------------------------
+8. imagen   (entidad Imagen)
+   Imagen de una publicación.
+------------------------------------------------------------------------------
+   id              BIGINT        (id)             PK, autoincremental
+   alojamiento_id  BIGINT        (alojamientoId)  obligatorio, FK → alojamiento.id
+   url             VARCHAR(255)  (url)            obligatorio
+   orden           INTEGER       (orden)          obligatorio
+
+------------------------------------------------------------------------------
+9. servicio_adicional   (entidad ServicioAdicional)
+   Servicio adicional con costo que ofrece un alojamiento (HU-13).
+------------------------------------------------------------------------------
+   id              BIGINT         (id)             PK, autoincremental
+   alojamiento_id  BIGINT         (alojamientoId)  obligatorio, FK → alojamiento.id
+   nombre          VARCHAR(80)    (nombre)         obligatorio
+   precio          NUMERIC(12,2)  (precio)         obligatorio
+   Reglas (CHECK):
+     - precio >= 0
+
+------------------------------------------------------------------------------
+10. periodo_disponibilidad   (entidad PeriodoDisponibilidad)
+   Periodo del calendario de un alojamiento (HU-16 a HU-18). RESERVADO tiene reserva_id.
+------------------------------------------------------------------------------
+   id              BIGINT       (id)             PK, autoincremental
+   alojamiento_id  BIGINT       (alojamientoId)  obligatorio, FK → alojamiento.id
+   reserva_id      BIGINT       (reservaId)      FK → reserva.id
+   fecha_inicio    DATE         (fechaInicio)    obligatorio
+   fecha_fin       DATE         (fechaFin)       obligatorio
+   estado          VARCHAR(12)  (estado)         obligatorio
+   Reglas (CHECK):
+     - estado IN ('DISPONIBLE','BLOQUEADO','RESERVADO')
+     - fecha_fin > fecha_inicio
+     - (estado = 'RESERVADO') = (reserva_id IS NOT NULL)
+
+------------------------------------------------------------------------------
+11. configuracion_tarifa   (entidad ConfiguracionTarifa)
+   Parámetro global de tarifas, por ejemplo TARIFA_SERVICIO_PORCENTAJE (HU-24).
+------------------------------------------------------------------------------
+   id             BIGINT         (id)            PK, autoincremental
+   clave          VARCHAR(40)    (clave)         obligatorio, único
+   valor          NUMERIC(12,2)  (valor)         obligatorio
+   vigente_desde  TIMESTAMP      (vigenteDesde)  obligatorio
+   Reglas (CHECK):
+     - valor >= 0
+
+------------------------------------------------------------------------------
+12. reserva   (entidad Reserva)
+   Reserva de un alojamiento hecha por un huésped.
+------------------------------------------------------------------------------
+   id               BIGINT         (id)              PK, autoincremental
+   huesped_id       BIGINT         (huespedId)       obligatorio, FK → usuario.id
+   alojamiento_id   BIGINT         (alojamientoId)   obligatorio, FK → alojamiento.id
+   fecha_llegada    DATE           (fechaLlegada)    obligatorio
+   fecha_salida     DATE           (fechaSalida)     obligatorio
+   num_huespedes    INTEGER        (numHuespedes)    obligatorio
+   noches           INTEGER        (noches)          obligatorio
+   precio_base      NUMERIC(12,2)  (precioBase)      obligatorio
+   tarifa_limpieza  NUMERIC(12,2)  (tarifaLimpieza)  obligatorio
+   tarifa_servicio  NUMERIC(12,2)  (tarifaServicio)  obligatorio
+   descuento        NUMERIC(12,2)  (descuento)       obligatorio
+   total            NUMERIC(12,2)  (total)           obligatorio
+   estado           VARCHAR(20)    (estado)          obligatorio
+   requiere_revision BOOLEAN       (requiereRevision) true si su publicación fue bloqueada (HU-42)
+   creada_en        TIMESTAMP      (creadaEn)        obligatorio
+   Reglas (CHECK):
+     - estado IN ('PENDIENTE_PAGO','CONFIRMADA','PAGO_FALLIDO','CANCELADA','COMPLETADA','EN_REVISION')
+     - fecha_salida > fecha_llegada
+     - num_huespedes > 0
+     - noches > 0
+     - precio_base >= 0 AND tarifa_limpieza >= 0 AND tarifa_servicio >= 0 AND descuento >= 0 AND total >= 0
+
+------------------------------------------------------------------------------
+13. reserva_servicio_adicional   (entidad ReservaServicioAdicional)
+   Servicio adicional contratado en una reserva, con el precio cobrado en ese momento.
+------------------------------------------------------------------------------
+   reserva_id             BIGINT         (reservaId)            PK, FK → reserva.id
+   servicio_adicional_id  BIGINT         (servicioAdicionalId)  PK, FK → servicio_adicional.id
+   precio                 NUMERIC(12,2)  (precio)               obligatorio
+   Reglas (CHECK):
+     - precio >= 0
+
+------------------------------------------------------------------------------
+14. pago   (entidad Pago)
+   Pago (o intento de pago) de una reserva.
+------------------------------------------------------------------------------
+   id                 BIGINT         (id)                PK, autoincremental
+   reserva_id         BIGINT         (reservaId)         obligatorio, FK → reserva.id
+   monto              NUMERIC(12,2)  (monto)             obligatorio
+   estado             VARCHAR(12)    (estado)            obligatorio
+   referencia_stripe  VARCHAR(80)    (referenciaStripe)  
+   clave_stripe       UUID           (claveStripe)       
+   creado_en          TIMESTAMP      (creadoEn)          obligatorio
+   Reglas (CHECK):
+     - estado IN ('APROBADO','RECHAZADO','DEVUELTO')
+     - monto >= 0
+
+------------------------------------------------------------------------------
+15. cancelacion   (entidad Cancelacion)
+   Datos de la cancelación de una reserva (HU-34).
+------------------------------------------------------------------------------
+   id                BIGINT         (id)               PK, autoincremental
+   reserva_id        BIGINT         (reservaId)        obligatorio, único, FK → reserva.id
+   usuario_id        BIGINT         (usuarioId)        obligatorio, FK → usuario.id
+   motivo            VARCHAR(255)   (motivo)           
+   valor_devolucion  NUMERIC(12,2)  (valorDevolucion)  obligatorio
+   estado_final      VARCHAR(30)    (estadoFinal)      obligatorio: CANCELADA_SIN_PAGO, CANCELADA_REEMBOLSO_TOTAL,
+                                                         CANCELADA_REEMBOLSO_PARCIAL, CANCELADA_SIN_REEMBOLSO, REEMBOLSO_PENDIENTE
+   fecha             TIMESTAMP      (fecha)            obligatorio
+   Reglas (CHECK):
+     - valor_devolucion >= 0
+
+------------------------------------------------------------------------------
+16. resena   (entidad Resena)
+   Reseña y calificación de una estadía completada (HU-38 a HU-41).
+------------------------------------------------------------------------------
+   id              BIGINT     (id)             PK, autoincremental
+   reserva_id      BIGINT     (reservaId)      obligatorio, único, FK → reserva.id
+   huesped_id      BIGINT     (huespedId)      obligatorio, FK → usuario.id
+   alojamiento_id  BIGINT     (alojamientoId)  obligatorio, FK → alojamiento.id
+   calificacion    INTEGER    (calificacion)   obligatorio
+   comentario      TEXT       (comentario)     
+   visible         BOOLEAN    (visible)        obligatorio
+   creada_en       TIMESTAMP  (creadaEn)       obligatorio
+   Reglas (CHECK):
+     - calificacion BETWEEN 1 AND 5
+
+------------------------------------------------------------------------------
+17. evento_outbox   (entidad EventoOutbox)
+   Evento pendiente de notificar (ADR-07). Se guarda en la misma transacción del negocio.
+------------------------------------------------------------------------------
+   id         BIGINT       (id)        PK, autoincremental
+   tipo       VARCHAR(60)  (tipo)      obligatorio
+   carga      JSONB        (carga)     obligatorio
+   estado     VARCHAR(12)  (estado)    obligatorio
+   intentos   INTEGER      (intentos)  obligatorio
+   creado_en  TIMESTAMP    (creadoEn)  obligatorio
+   Reglas (CHECK):
+     - estado IN ('PENDIENTE','PROCESADO','ERROR')
+     - intentos BETWEEN 0 AND 3
+
+------------------------------------------------------------------------------
+18. evento_auditoria   (entidad EventoAuditoria)
+   Registro de auditoría, solo inserción y sin FK (ADR-06).
+------------------------------------------------------------------------------
+   id          BIGINT       (id)         PK, autoincremental
+   usuario_id  BIGINT       (usuarioId)  
+   entidad     VARCHAR(40)  (entidad)    obligatorio
+   entidad_id  BIGINT       (entidadId)  
+   accion      VARCHAR(40)  (accion)     obligatorio
+   resultado   VARCHAR(20)  (resultado)  obligatorio
+   detalle     JSONB        (detalle)    
+   fecha       TIMESTAMP    (fecha)      obligatorio
+   Reglas (CHECK):
+     - resultado IN ('EXITO','FALLO')
+
+------------------------------------------------------------------------------
+19. reporte_exportacion   (entidad ReporteExportacion)
+   Reporte que el administrador pide y se genera en segundo plano (HU-47).
+------------------------------------------------------------------------------
+   id              BIGINT        (id)             PK, autoincremental
+   admin_id        BIGINT        (adminId)        obligatorio, FK → usuario.id
+   tipo            VARCHAR(30)   (tipo)           obligatorio: RESERVAS
+   formato         VARCHAR(10)   (formato)        obligatorio
+   desde           DATE          (desde)          obligatorio
+   hasta           DATE          (hasta)          obligatorio
+   estado          VARCHAR(12)   (estado)         obligatorio
+   nombre_archivo  VARCHAR(120)  (nombreArchivo)
+   registros       INTEGER       (registros)
+   archivo         BYTEA         (no sale en el JSON; se descarga en /reportes/exportaciones/{id}/archivo)
+   mensaje_error   VARCHAR(255)  (mensajeError)
+   creado_en       TIMESTAMP     (creadoEn)       obligatorio
+   terminado_en    TIMESTAMP     (terminadoEn)
+   Reglas (CHECK):
+     - estado IN ('PENDIENTE','PROCESANDO','LISTO','ERROR')
+     - formato IN ('CSV','PDF','EXCEL')
+
+==============================================================================
+RELACIONES PRINCIPALES
+  usuario 1 ── * alojamiento            (alojamiento.anfitrion_id)
+  usuario 1 ── * reporte_exportacion    (reporte_exportacion.admin_id)
+  usuario 1 ── * reserva                (reserva.huesped_id)
+  usuario 1 ── * notificacion
+  politica_cancelacion 1 ── * alojamiento
+  alojamiento * ── * servicio           (tabla puente alojamiento_servicio)
+  alojamiento 1 ── * imagen
+  alojamiento 1 ── * servicio_adicional
+  alojamiento 1 ── * periodo_disponibilidad
+  alojamiento 1 ── * reserva
+  reserva * ── * servicio_adicional     (tabla puente reserva_servicio_adicional, guarda el precio cobrado)
+  reserva 1 ── * pago
+  reserva 1 ── 0..1 cancelacion
+  reserva 1 ── 0..1 resena
+  reserva 1 ── 0..1 periodo_disponibilidad RESERVADO (se crea al reservar y se borra al cancelar o si falla el pago)
+  evento_auditoria: sin llaves foráneas a propósito (ADR-06), solo admite INSERT.
+
+ESTADOS (para mostrar en el frontend)
+  usuario.rol ................ HUESPED, ANFITRION, ADMINISTRADOR
+  usuario.estado ............. ACTIVO, INACTIVO, RESTRINGIDO
+  alojamiento.estado ......... BORRADOR → PENDIENTE_REVISION → ACTIVA ⇄ PAUSADA; BLOQUEADA (admin)
+  alojamiento.modo_reserva ... INMEDIATA (paga al reservar), APROBACION (el anfitrión aprueba y luego se paga)
+  alojamiento.tipo ........... CASA, APARTAMENTO, FINCA, CABANA, HABITACION, GLAMPING
+  reserva.estado ............. EN_REVISION, PENDIENTE_PAGO, CONFIRMADA, PAGO_FALLIDO, CANCELADA, COMPLETADA
+  periodo_disponibilidad ..... DISPONIBLE (el anfitrión abre fechas), BLOQUEADO (las cierra), RESERVADO (automático)
+  pago.estado ................ APROBADO, RECHAZADO, DEVUELTO
+  reporte_exportacion.estado . PENDIENTE → PROCESANDO → LISTO o ERROR
+  politica_cancelacion.tipo .. FLEXIBLE (id 1), ESTRICTA (id 2)
+
+DATOS QUE YA VIENEN AL ARRANCAR
+  - Administrador: admin@marketplace.com / Admin2026*
+  - Políticas: 1 Flexible, 2 Estricta
+  - Servicios: 1 Wifi, 2 Parqueadero, 3 Piscina, 4 Cocina equipada, 5 Aire acondicionado,
+               6 Lavadora, 7 Televisión, 8 Admite mascotas, 9 Zona BBQ, 10 Jacuzzi
+  - Tarifas: TARIFA_SERVICIO_PORCENTAJE = 10, DESCUENTO_SEMANAL_PORCENTAJE = 5, NOCHES_DESCUENTO_SEMANAL = 7
+
+NOTA PARA EL FRONTEND
+  El frontend nunca habla con la base de datos: todo pasa por la API REST (http://localhost:8080).
+  Las rutas, lo que hay que enviar y lo que responde cada una están en docs/GUIA_BACKEND.md
+  y en la colección de Postman docs/Marketplace_LR.postman_collection.json.
+  Con el backend corriendo también se ven en Swagger: http://localhost:8080/swagger-ui.html
+  Las fotos se suben con POST /alojamientos/{id}/imagenes/archivo (multipart, campo "archivo")
+  y se muestran con la URL que devuelve (GET /imagenes/{nombre}).
