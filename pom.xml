@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Proyecto raíz del Marketplace de Alojamientos - Inversiones LR.
+  Permite abrir la carpeta completa en IntelliJ (o cualquier IDE) y que reconozca el backend.
+  El backend se compila y ejecuta desde la carpeta backend con ./mvnw.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>co.edu.unbosque</groupId>
+    <artifactId>marketplace-alojamientos</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>marketplace-alojamientos</name>
+    <description>Marketplace de Alojamientos - Inversiones LR (Universidad El Bosque)</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <modules>
+        <module>backend</module>
+    </modules>
+</project>
