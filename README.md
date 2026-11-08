@@ -1,5 +1,7 @@
 # Marketplace de Alojamientos — Inversiones LR
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=sanchavarro_Marketplace-Alojamientos-Producto&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=sanchavarro_Marketplace-Alojamientos-Producto)
+
 Proyecto de Ingeniería de Software · Universidad El Bosque.
 
 Plataforma web donde el **anfitrión** publica alojamientos, el **huésped** busca, cotiza y reserva pagando en línea,
