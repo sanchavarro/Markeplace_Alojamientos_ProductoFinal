@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import co.edu.unbosque.entity.ConfiguracionTarifa;
@@ -23,6 +24,7 @@ import co.edu.unbosque.utils.Constantes;
  * políticas de cancelación, servicios incluidos, parámetros de tarifas y el usuario administrador.
  */
 @Component
+@Order(1)
 public class DatosIniciales implements CommandLineRunner {
 
     private static final Logger logger = Logger.getLogger(DatosIniciales.class.getName());
@@ -80,6 +82,7 @@ public class DatosIniciales implements CommandLineRunner {
             admin.setRol(Constantes.ROL_ADMINISTRADOR);
             admin.setEstado(Constantes.USUARIO_ACTIVO);
             admin.setIntentosFallidos(0);
+            admin.setCorreoVerificado(true);
             admin.setCreadoEn(LocalDateTime.now());
             usuarioServiceAPI.save(admin);
             logger.info("datos_iniciales=admin_creado correo=" + adminCorreo);
