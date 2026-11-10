@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-white text-ink font-sans;
+    letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.022em;
+  }
+  ::selection {
+    @apply bg-accent/20;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply backdrop-blur-md bg-white/75 supports-[backdrop-filter]:bg-white/70;
+  }
+  .container-app {
+    @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-10;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #ececef 0px, #f6f6f8 120px, #ececef 240px);
+    background-size: 800px 100%;
+    @apply animate-shimmer;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-soft;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition
+      placeholder:text-ink-faint focus:border-accent focus:ring-4 focus:ring-accent/15 disabled:bg-canvas disabled:text-ink-muted;
+  }
+  .field-error {
+    @apply border-brand focus:border-brand focus:ring-brand/15;
+  }
+  .table-app {
+    @apply w-full text-left text-sm;
+  }
+  .table-app th {
+    @apply whitespace-nowrap border-b border-line/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ink-muted;
+  }
+  .table-app td {
+    @apply border-b border-line/40 px-4 py-3 align-middle text-ink-soft;
+  }
+  .table-app tbody tr:hover td {
+    @apply bg-canvas/60;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
