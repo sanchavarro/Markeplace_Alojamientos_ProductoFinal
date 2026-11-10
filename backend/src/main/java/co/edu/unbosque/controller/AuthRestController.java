@@ -54,7 +54,8 @@ public class AuthRestController {
     // POST /auth/registro — HU-01
     @PostMapping("/registro")
     public ResponseEntity<?> registro(@Valid @RequestBody RegistroRequest request) {
-        logger.info("Registro de usuario con rol " + request.getRol());
+        // No se registran datos del cuerpo de la solicitud en el log (evita inyección en los logs).
+        logger.info("Solicitud de registro de usuario");
         return ResponseEntity.status(HttpStatus.CREATED).body(authServiceAPI.registrar(request));
     }
 

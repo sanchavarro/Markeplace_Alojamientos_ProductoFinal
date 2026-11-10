@@ -37,6 +37,7 @@ import co.edu.unbosque.utils.Constantes;
  * y disponibilidad para los próximos 12 meses.
  *
  * Se desactiva con datos.demo=false (o la variable DATOS_DEMO=false). Las pruebas lo desactivan.
+ * La clave de las cuentas demo se toma de datos.demo.clave (variable DATOS_DEMO_CLAVE).
  */
 @Component
 @Order(2)
@@ -46,7 +47,6 @@ public class DatosDemo implements CommandLineRunner {
 
     static final String CORREO_ANFITRION = "anfitrion.demo@marketplace.com";
     static final String CORREO_HUESPED = "huesped.demo@marketplace.com";
-    static final String CLAVE_DEMO = "Demo2026*";
 
     private final UsuarioRepository usuarioRepository;
     private final AlojamientoRepository alojamientoRepository;
@@ -60,6 +60,10 @@ public class DatosDemo implements CommandLineRunner {
 
     @Value("${datos.demo:true}")
     private boolean habilitado;
+
+    /** Clave de las cuentas demo (propiedad datos.demo.clave / variable DATOS_DEMO_CLAVE), nunca en el código. */
+    @Value("${datos.demo.clave:}")
+    private String claveDemo;
 
     public DatosDemo(UsuarioRepository usuarioRepository, AlojamientoRepository alojamientoRepository,
                      ImagenRepository imagenRepository, PeriodoDisponibilidadRepository periodoRepository,
@@ -87,7 +91,8 @@ public class DatosDemo implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!habilitado || usuarioRepository.findByCorreoIgnoreCase(CORREO_ANFITRION).isPresent()) {
+        if (!habilitado || claveDemo == null || claveDemo.isBlank()
+                || usuarioRepository.findByCorreoIgnoreCase(CORREO_ANFITRION).isPresent()) {
             return;
         }
         Usuario anfitrion = usuario("Valentina Ríos", CORREO_ANFITRION, Constantes.ROL_ANFITRION, "+57 310 555 0101");
@@ -157,7 +162,7 @@ public class DatosDemo implements CommandLineRunner {
         Usuario u = new Usuario();
         u.setNombre(nombre);
         u.setCorreo(correo);
-        u.setHashContrasena(passwordEncoder.encode(CLAVE_DEMO));
+        u.setHashContrasena(passwordEncoder.encode(claveDemo));
         u.setRol(rol);
         u.setEstado(Constantes.USUARIO_ACTIVO);
         u.setTelefono(telefono);

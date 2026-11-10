@@ -34,6 +34,19 @@ class ServicioCaptchaTest {
     }
 
     @Test
+    void aceptaLaRespuestaCorrectaSinImportarMayusculasNiEspacios() throws Exception {
+        ServicioCaptcha s = servicio(true);
+        String id = (String) s.generar().get("captchaId");
+        Map<?, ?> desafios = (Map<?, ?>) ReflectionTestUtils.getField(s, "desafios");
+        Object desafio = desafios.get(id);
+        java.lang.reflect.Method respuesta = desafio.getClass().getDeclaredMethod("respuesta");
+        respuesta.setAccessible(true);
+        String correcta = (String) respuesta.invoke(desafio);
+        assertDoesNotThrow(() -> s.validar(id, " " + correcta.toLowerCase() + " "));
+        assertTrue(s.estaHabilitado());
+    }
+
+    @Test
     void exigeRespuestaCuandoEstaHabilitado() {
         assertThrows(ReglaNegocioException.class, () -> servicio(true).validar(null, null));
     }
