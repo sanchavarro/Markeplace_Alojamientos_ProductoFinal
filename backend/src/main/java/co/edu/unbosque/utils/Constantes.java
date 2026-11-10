@@ -69,6 +69,7 @@ public final class Constantes {
     // Tipos de evento del outbox (ADR-07)
     public static final String EVENTO_USUARIO_REGISTRADO = "USUARIO_REGISTRADO";
     public static final String EVENTO_RECUPERACION_CLAVE = "RECUPERACION_CLAVE";
+    public static final String EVENTO_VERIFICACION_CORREO = "VERIFICACION_CORREO";
     public static final String EVENTO_RESERVA_CONFIRMADA = "RESERVA_CONFIRMADA";
     public static final String EVENTO_RESERVA_POR_APROBAR = "RESERVA_POR_APROBAR";
     public static final String EVENTO_RESERVA_APROBADA = "RESERVA_APROBADA";
