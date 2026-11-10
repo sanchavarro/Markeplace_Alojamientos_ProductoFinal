@@ -5,14 +5,18 @@ import co.edu.unbosque.dto.LoginRequest;
 import co.edu.unbosque.dto.LoginResponse;
 import co.edu.unbosque.dto.RegistroRequest;
 import co.edu.unbosque.dto.RestablecerClaveRequest;
-import co.edu.unbosque.dto.UsuarioDTO;
+import co.edu.unbosque.dto.VerificarCorreoRequest;
 
 /**
  * IAuth del diagrama de componentes (épica E01, ADR-05).
  */
 public interface AuthServiceAPI {
 
-    UsuarioDTO registrar(RegistroRequest request);
+    Map<String, Object> registrar(RegistroRequest request);
+
+    LoginResponse verificarCorreo(VerificarCorreoRequest request);
+
+    Map<String, Object> reenviarVerificacion(String correo);
 
     LoginResponse login(LoginRequest request);
 

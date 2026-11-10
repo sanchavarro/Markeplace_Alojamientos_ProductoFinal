@@ -9,6 +9,8 @@ import co.edu.unbosque.dto.LoginRequest;
 import co.edu.unbosque.dto.RecuperarClaveRequest;
 import co.edu.unbosque.dto.RegistroRequest;
 import co.edu.unbosque.dto.RestablecerClaveRequest;
+import co.edu.unbosque.dto.VerificarCorreoRequest;
+import co.edu.unbosque.utils.ServicioCaptcha;
 import co.edu.unbosque.service.api.AuthServiceAPI;
 import co.edu.unbosque.utils.Utilidad;
 import jakarta.validation.Valid;
@@ -25,6 +27,29 @@ public class AuthRestController {
 
     @Autowired
     private AuthServiceAPI authServiceAPI;
+
+    @Autowired
+    private ServicioCaptcha servicioCaptcha;
+
+    // GET /auth/captcha — captcha del registro (imagen SVG + identificador de un solo uso)
+    @GetMapping("/captcha")
+    public ResponseEntity<?> captcha() {
+        java.util.Map<String, Object> cuerpo = servicioCaptcha.generar();
+        cuerpo.put("habilitado", servicioCaptcha.estaHabilitado());
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(cuerpo);
+    }
+
+    // POST /auth/verificar-correo — confirma el correo con el código y devuelve la sesión
+    @PostMapping("/verificar-correo")
+    public ResponseEntity<?> verificarCorreo(@Valid @RequestBody VerificarCorreoRequest request) {
+        return ResponseEntity.ok(authServiceAPI.verificarCorreo(request));
+    }
+
+    // POST /auth/reenviar-verificacion — nuevo código de confirmación
+    @PostMapping("/reenviar-verificacion")
+    public ResponseEntity<?> reenviarVerificacion(@Valid @RequestBody RecuperarClaveRequest request) {
+        return ResponseEntity.ok(authServiceAPI.reenviarVerificacion(request.getCorreo()));
+    }
 
     // POST /auth/registro — HU-01
     @PostMapping("/registro")

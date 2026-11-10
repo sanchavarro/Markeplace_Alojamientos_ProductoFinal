@@ -62,7 +62,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/salud/metricas").hasRole(ADMIN)
                 // Autenticación (HU-01, HU-02, HU-04, HU-06)
                 .requestMatchers(HttpMethod.POST, "/auth/registro", "/auth/login", "/auth/reactivar",
-                        "/auth/recuperar", "/auth/restablecer").permitAll()
+                        "/auth/recuperar", "/auth/restablecer", "/auth/verificar-correo",
+                        "/auth/reenviar-verificacion").permitAll()
+                .requestMatchers(HttpMethod.GET, "/auth/captcha").permitAll()
                 // Consulta pública: catálogo, búsqueda, cotización, detalle, calendario y reseñas
                 .requestMatchers(HttpMethod.GET, "/catalogo/**", "/busqueda/**", "/tarifas").permitAll()
                 .requestMatchers(HttpMethod.POST, "/cotizaciones").permitAll()

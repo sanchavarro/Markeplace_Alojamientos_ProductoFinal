@@ -1,5 +1,6 @@
 package co.edu.unbosque.service.impl;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import co.edu.unbosque.dto.LoginResponse;
 import co.edu.unbosque.dto.RegistroRequest;
 import co.edu.unbosque.dto.RestablecerClaveRequest;
 import co.edu.unbosque.dto.UsuarioDTO;
+import co.edu.unbosque.dto.VerificarCorreoRequest;
 import co.edu.unbosque.entity.Usuario;
 import co.edu.unbosque.repository.UsuarioRepository;
 import co.edu.unbosque.service.api.AuthServiceAPI;
@@ -23,12 +25,14 @@ import co.edu.unbosque.service.api.EventoOutboxServiceAPI;
 import co.edu.unbosque.service.api.UsuarioServiceAPI;
 import co.edu.unbosque.utils.ConflictoException;
 import co.edu.unbosque.utils.Constantes;
+import co.edu.unbosque.utils.CorreoNoVerificadoException;
 import co.edu.unbosque.utils.CredencialesInvalidasException;
 import co.edu.unbosque.utils.CuentaBloqueadaException;
 import co.edu.unbosque.utils.EnviadorCorreo;
 import co.edu.unbosque.utils.JwtUtil;
 import co.edu.unbosque.utils.ListaTokensRevocados;
 import co.edu.unbosque.utils.ReglaNegocioException;
+import co.edu.unbosque.utils.ServicioCaptcha;
 import co.edu.unbosque.utils.Utilidad;
 import io.jsonwebtoken.Claims;
 
@@ -74,10 +78,29 @@ public class AuthServiceImpl implements AuthServiceAPI {
     @Value("${seguridad.bloqueo.minutos}")
     private int minutosBloqueo;
 
-    /** HU-01: registro con rol HUESPED o ANFITRION. La clave se guarda con BCrypt. */
+    @Autowired
+    private ServicioCaptcha servicioCaptcha;
+
+    /** Exigir la confirmación del correo antes del primer inicio de sesión. */
+    @Value("${seguridad.verificacion.correo.habilitada:true}")
+    private boolean verificacionHabilitada;
+
+    @Value("${seguridad.verificacion.correo.minutos:15}")
+    private int minutosCodigo;
+
+    private static final int INTENTOS_CODIGO = 5;
+    private static final int SEGUNDOS_ENTRE_ENVIOS = 60;
+    private final SecureRandom azar = new SecureRandom();
+
+    /**
+     * HU-01: registro con rol HUESPED o ANFITRION. La clave se guarda con BCrypt.
+     * Antes de crear la cuenta se valida el captcha; después se envía un código de 6 dígitos al correo
+     * y la cuenta no puede iniciar sesión hasta confirmarlo (POST /auth/verificar-correo).
+     */
     @Override
     @Transactional
-    public UsuarioDTO registrar(RegistroRequest request) {
+    public Map<String, Object> registrar(RegistroRequest request) {
+        servicioCaptcha.validar(request.getCaptchaId(), request.getCaptchaRespuesta());
         String rol = request.getRol().trim().toUpperCase();
         if (!Constantes.ROLES_REGISTRABLES.contains(rol)) {
             throw new ReglaNegocioException("El rol debe ser HUESPED o ANFITRION.");
@@ -94,13 +117,97 @@ public class AuthServiceImpl implements AuthServiceAPI {
         usuario.setEstado(Constantes.USUARIO_ACTIVO);
         usuario.setIntentosFallidos(0);
         usuario.setCreadoEn(LocalDateTime.now());
+        usuario.setCorreoVerificado(!verificacionHabilitada);
         usuario = usuarioRepository.save(usuario);
 
         eventoAuditoriaServiceAPI.registrar(usuario.getId(), "USUARIO", usuario.getId(), "REGISTRO",
                 Constantes.AUDITORIA_EXITO, Utilidad.detalle("rol", rol));
         eventoOutboxServiceAPI.publicar(Constantes.EVENTO_USUARIO_REGISTRADO, usuario.getId(),
                 "Bienvenido al Marketplace", "Hola " + usuario.getNombre() + ", tu cuenta fue creada.");
-        return usuarioServiceAPI.aDTO(usuario);
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("usuario", usuarioServiceAPI.aDTO(usuario));
+        respuesta.put("verificacionRequerida", verificacionHabilitada);
+        if (verificacionHabilitada) {
+            String codigo = enviarCodigo(usuario);
+            respuesta.put("mensaje", "Te enviamos un código de 6 dígitos a " + correo + " para confirmar tu cuenta.");
+            if (enviadorCorreo.esSimulado()) {
+                respuesta.put("codigoVerificacionSimulado", codigo);
+            }
+        }
+        return respuesta;
+    }
+
+    /** Genera un código de 6 dígitos, guarda solo su hash y lo envía por el outbox (correo + notificación). */
+    private String enviarCodigo(Usuario usuario) {
+        String codigo = String.format("%06d", azar.nextInt(1_000_000));
+        LocalDateTime ahora = LocalDateTime.now();
+        usuario.setCodigoVerificacionHash(passwordEncoder.encode(codigo));
+        usuario.setCodigoVerificacionExpira(ahora.plusMinutes(minutosCodigo));
+        usuario.setCodigoVerificacionEnviado(ahora);
+        usuario.setIntentosVerificacion(0);
+        usuarioRepository.save(usuario);
+        eventoOutboxServiceAPI.publicar(Constantes.EVENTO_VERIFICACION_CORREO, usuario.getId(),
+                "Confirma tu correo",
+                "Tu código para confirmar la cuenta es " + codigo + ". Vence en " + minutosCodigo + " minutos.");
+        return codigo;
+    }
+
+    /** Confirma el correo con el código y deja la sesión iniciada. */
+    @Override
+    @Transactional(noRollbackFor = CredencialesInvalidasException.class)
+    public LoginResponse verificarCorreo(VerificarCorreoRequest request) {
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(request.getCorreo().trim())
+                .orElseThrow(() -> new CredencialesInvalidasException("El código no es válido."));
+        if (usuario.isCorreoConfirmado()) {
+            throw new ReglaNegocioException("Este correo ya fue confirmado. Inicia sesión.");
+        }
+        if (usuario.getCodigoVerificacionHash() == null || usuario.getCodigoVerificacionExpira() == null
+                || usuario.getCodigoVerificacionExpira().isBefore(LocalDateTime.now())) {
+            throw new CredencialesInvalidasException("El código venció. Solicita uno nuevo.");
+        }
+        int intentos = usuario.getIntentosVerificacion() == null ? 0 : usuario.getIntentosVerificacion();
+        if (intentos >= INTENTOS_CODIGO) {
+            throw new CredencialesInvalidasException("Superaste los intentos permitidos. Solicita un código nuevo.");
+        }
+        if (!passwordEncoder.matches(request.getCodigo().trim(), usuario.getCodigoVerificacionHash())) {
+            usuario.setIntentosVerificacion(intentos + 1);
+            usuarioRepository.save(usuario);
+            eventoAuditoriaServiceAPI.registrar(usuario.getId(), "USUARIO", usuario.getId(), "VERIFICAR_CORREO",
+                    Constantes.AUDITORIA_FALLO, Utilidad.detalle("intento", intentos + 1));
+            throw new CredencialesInvalidasException("El código no es correcto. Te quedan "
+                    + (INTENTOS_CODIGO - intentos - 1) + " intentos.");
+        }
+        usuario.setCorreoVerificado(true);
+        usuario.setCodigoVerificacionHash(null);
+        usuario.setCodigoVerificacionExpira(null);
+        usuario.setIntentosVerificacion(0);
+        usuarioRepository.save(usuario);
+        eventoAuditoriaServiceAPI.registrar(usuario.getId(), "USUARIO", usuario.getId(), "VERIFICAR_CORREO",
+                Constantes.AUDITORIA_EXITO, null);
+        return construirLogin(usuario);
+    }
+
+    /** Reenvía el código. La respuesta es la misma exista o no la cuenta (no revela correos registrados). */
+    @Override
+    @Transactional
+    public Map<String, Object> reenviarVerificacion(String correo) {
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("mensaje", "Si la cuenta existe y no está confirmada, enviamos un código nuevo.");
+        usuarioRepository.findByCorreoIgnoreCase(correo.trim()).ifPresent(usuario -> {
+            if (usuario.isCorreoConfirmado()) {
+                return;
+            }
+            LocalDateTime enviado = usuario.getCodigoVerificacionEnviado();
+            if (enviado != null && enviado.plusSeconds(SEGUNDOS_ENTRE_ENVIOS).isAfter(LocalDateTime.now())) {
+                throw new ReglaNegocioException("Espera un minuto antes de pedir otro código.");
+            }
+            String codigo = enviarCodigo(usuario);
+            if (enviadorCorreo.esSimulado()) {
+                respuesta.put("codigoVerificacionSimulado", codigo);
+            }
+        });
+        return respuesta;
     }
 
     /**
@@ -165,6 +272,10 @@ public class AuthServiceImpl implements AuthServiceAPI {
                     Constantes.AUDITORIA_FALLO, Utilidad.detalle("intento", intentos));
             throw new CredencialesInvalidasException("Correo o clave incorrectos. Te quedan "
                     + (intentosMaximos - intentos) + " intentos.");
+        }
+        if (verificacionHabilitada && !usuario.isCorreoConfirmado()) {
+            throw new CorreoNoVerificadoException(
+                    "Confirma tu correo con el código que te enviamos antes de iniciar sesión.", usuario.getCorreo());
         }
         if (Constantes.USUARIO_INACTIVO.equals(usuario.getEstado()) && !permitirInactivo) {
             throw new CuentaBloqueadaException("Tu cuenta está desactivada. Reactívala en POST /auth/reactivar.");

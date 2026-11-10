@@ -93,6 +93,16 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.LOCKED, ex.getMessage());
     }
 
+    /** Cuenta registrada pero con el correo sin confirmar: 403 con un código para que el frontend lo distinga. */
+    @ExceptionHandler(CorreoNoVerificadoException.class)
+    public ResponseEntity<?> handleCorreoNoVerificado(CorreoNoVerificadoException ex) {
+        Map<String, Object> cuerpo = new HashMap<>();
+        cuerpo.put("mensaje", ex.getMessage());
+        cuerpo.put("codigo", "CORREO_NO_VERIFICADO");
+        cuerpo.put("correo", ex.getCorreo());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(cuerpo);
+    }
+
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<?> handleRegla(ReglaNegocioException ex) {
         return respuesta(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());

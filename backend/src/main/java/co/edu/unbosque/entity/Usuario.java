@@ -53,6 +53,29 @@ public class Usuario implements Serializable {
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
 
+    /**
+     * Verificación del correo al registrarse. NULL se trata como verificado para las cuentas creadas
+     * antes de esta funcionalidad (ddl-auto=update agrega la columna vacía).
+     */
+    @Column(name = "correo_verificado")
+    private Boolean correoVerificado;
+
+    @JsonIgnore
+    @Column(name = "codigo_verificacion_hash", length = 255)
+    private String codigoVerificacionHash;
+
+    @JsonIgnore
+    @Column(name = "codigo_verificacion_expira")
+    private LocalDateTime codigoVerificacionExpira;
+
+    @JsonIgnore
+    @Column(name = "codigo_verificacion_enviado")
+    private LocalDateTime codigoVerificacionEnviado;
+
+    @JsonIgnore
+    @Column(name = "intentos_verificacion")
+    private Integer intentosVerificacion;
+
     public Usuario() {
     }
 
@@ -82,6 +105,25 @@ public class Usuario implements Serializable {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public Boolean getCorreoVerificado() { return correoVerificado; }
+    public void setCorreoVerificado(Boolean correoVerificado) { this.correoVerificado = correoVerificado; }
+
+    /** true salvo que la columna sea explícitamente FALSE (cuentas nuevas aún sin verificar). */
+    @JsonIgnore
+    public boolean isCorreoConfirmado() { return !Boolean.FALSE.equals(correoVerificado); }
+
+    public String getCodigoVerificacionHash() { return codigoVerificacionHash; }
+    public void setCodigoVerificacionHash(String codigoVerificacionHash) { this.codigoVerificacionHash = codigoVerificacionHash; }
+
+    public LocalDateTime getCodigoVerificacionExpira() { return codigoVerificacionExpira; }
+    public void setCodigoVerificacionExpira(LocalDateTime codigoVerificacionExpira) { this.codigoVerificacionExpira = codigoVerificacionExpira; }
+
+    public LocalDateTime getCodigoVerificacionEnviado() { return codigoVerificacionEnviado; }
+    public void setCodigoVerificacionEnviado(LocalDateTime codigoVerificacionEnviado) { this.codigoVerificacionEnviado = codigoVerificacionEnviado; }
+
+    public Integer getIntentosVerificacion() { return intentosVerificacion; }
+    public void setIntentosVerificacion(Integer intentosVerificacion) { this.intentosVerificacion = intentosVerificacion; }
 
     public String getTelefono() {
         return telefono;

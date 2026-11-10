@@ -25,6 +25,14 @@ public class RegistroRequest {
     @NotBlank(message = "El rol es obligatorio (HUESPED o ANFITRION).")
     private String rol;
 
+    /** Identificador del captcha entregado por GET /auth/captcha. */
+    @Size(max = 64, message = "El identificador del captcha no es válido.")
+    private String captchaId;
+
+    /** Texto que el usuario leyó en la imagen del captcha. */
+    @Size(max = 12, message = "La respuesta del captcha no es válida.")
+    private String captchaRespuesta;
+
     public RegistroRequest() {
     }
 
@@ -39,4 +47,10 @@ public class RegistroRequest {
 
     public String getRol() { return rol; }
     public void setRol(String rol) { this.rol = rol; }
+
+    public String getCaptchaId() { return captchaId; }
+    public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
+
+    public String getCaptchaRespuesta() { return captchaRespuesta; }
+    public void setCaptchaRespuesta(String captchaRespuesta) { this.captchaRespuesta = captchaRespuesta; }
 }
