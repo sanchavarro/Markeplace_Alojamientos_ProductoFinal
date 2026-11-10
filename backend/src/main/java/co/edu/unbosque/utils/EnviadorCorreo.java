@@ -1,22 +1,34 @@
 package co.edu.unbosque.utils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 /**
  * Adaptador de correo (infraestructura). Es la única clase que conoce el servidor SMTP.
- * correo.modo=simulado → solo escribe en el log (pruebas y CI).
- * correo.modo=smtp     → envía el correo real con los datos de spring.mail.*.
+ * correo.modo=simulado → no envía nada: deja el aviso en el log y guarda una vista previa HTML del correo
+ *                        en correo.vista.previa.ruta (logs/correos) para revisar el diseño.
+ * correo.modo=smtp     → envía el correo real (HTML + texto plano) con los datos de spring.mail.*.
  */
 @Component
 public class EnviadorCorreo {
 
     private static final Logger logger = Logger.getLogger(EnviadorCorreo.class.getName());
+    private static final DateTimeFormatter MARCA = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS");
 
     public static final String MODO_SIMULADO = "simulado";
 
@@ -29,21 +41,51 @@ public class EnviadorCorreo {
     @Value("${correo.remitente}")
     private String remitente;
 
+    @Value("${correo.nombre.remitente:Marketplace de Alojamientos}")
+    private String nombreRemitente;
+
+    @Value("${correo.vista.previa.ruta:logs/correos}")
+    private String rutaVistaPrevia;
+
     public boolean esSimulado() {
         return !"smtp".equalsIgnoreCase(modo);
     }
 
-    public void enviar(String destino, String asunto, String texto) {
+    /** Envía un correo con versión HTML y versión de texto plano. */
+    public void enviar(String destino, PlantillaCorreo.Correo correo) {
         if (esSimulado()) {
-            logger.info("canal=correo_simulado destino=" + Utilidad.ocultarCorreo(destino) + " asunto=\"" + asunto + "\"");
+            guardarVistaPrevia(destino, correo);
+            logger.info("canal=correo_simulado destino=" + Utilidad.ocultarCorreo(destino) + " asunto=\"" + correo.asunto() + "\"");
             return;
         }
-        SimpleMailMessage mensaje = new SimpleMailMessage();
-        mensaje.setFrom(remitente);
-        mensaje.setTo(destino);
-        mensaje.setSubject(asunto);
-        mensaje.setText(texto);
-        mailSender.send(mensaje);
-        logger.info("canal=correo destino=" + Utilidad.ocultarCorreo(destino) + " asunto=\"" + asunto + "\" estado=enviado");
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper ayudante = new MimeMessageHelper(mensaje, true, StandardCharsets.UTF_8.name());
+            ayudante.setFrom(remitente, nombreRemitente);
+            ayudante.setTo(destino);
+            ayudante.setSubject(correo.asunto());
+            ayudante.setText(correo.texto(), correo.html());
+            mailSender.send(mensaje);
+        } catch (MessagingException | IOException e) {
+            // Sube al DespachadorOutbox para que reintente (ADR-07).
+            throw new MailSendException("No se pudo armar el correo: " + e.getMessage(), e);
+        }
+        logger.info("canal=correo destino=" + Utilidad.ocultarCorreo(destino) + " asunto=\"" + correo.asunto() + "\" estado=enviado");
+    }
+
+    /** Guarda el HTML en disco para ver cómo se vería el correo sin un servidor SMTP. */
+    private void guardarVistaPrevia(String destino, PlantillaCorreo.Correo correo) {
+        if (rutaVistaPrevia == null || rutaVistaPrevia.isBlank()) {
+            return;
+        }
+        try {
+            Path carpeta = Paths.get(rutaVistaPrevia);
+            Files.createDirectories(carpeta);
+            String usuario = destino == null ? "anonimo" : destino.replaceAll("[^A-Za-z0-9]", "_");
+            Path archivo = carpeta.resolve(LocalDateTime.now().format(MARCA) + "_" + usuario + ".html");
+            Files.writeString(archivo, correo.html(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "No se pudo guardar la vista previa del correo", e);
+        }
     }
 }

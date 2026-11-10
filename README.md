@@ -62,3 +62,11 @@ Para correos reales o Stripe en modo pruebas, copia `backend/.env.example` como 
 
 - Columnas nuevas en `usuario` (las agrega `ddl-auto=update`): `correo_verificado`, `codigo_verificacion_hash`, `codigo_verificacion_expira`, `codigo_verificacion_enviado`, `intentos_verificacion`.
 - En `application-test.properties` el captcha, la verificación y el catálogo demo están desactivados para que las pruebas existentes sigan pasando.
+
+### Correos con diseño (versión 1.1)
+
+- Todos los correos salen en **HTML + texto plano** con la identidad visual del frontend (`utils/PlantillaCorreo.java`): encabezado con logo, tarjeta blanca, color de acento según el evento (verde confirmaciones, rojo pagos fallidos y cancelaciones, ámbar solicitudes por aprobar), botón de acción que lleva a la pantalla correcta según el rol y pie con enlaces de ayuda.
+- El correo de verificación muestra el código de 6 dígitos destacado; el de recuperación, el botón "Crear una nueva clave".
+- Todo el texto dinámico se escapa (sin inyección de HTML).
+- Con `correo.modo=simulado` cada correo se guarda como `.html` en `logs/correos/` (`correo.vista.previa.ruta`) para revisar el diseño sin servidor SMTP.
+- Nuevas pruebas: `PlantillaCorreoTest` y `ServicioCaptchaTest`.
