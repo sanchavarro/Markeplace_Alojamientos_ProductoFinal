@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ public class EnviadorCorreo {
     /** Envía un correo con versión HTML y versión de texto plano. */
     public void enviar(String destino, PlantillaCorreo.Correo correo) {
         if (esSimulado()) {
-            guardarVistaPrevia(destino, correo);
+            guardarVistaPrevia(correo);
             logger.info("canal=correo_simulado destino=" + Utilidad.ocultarCorreo(destino) + " asunto=\"" + correo.asunto() + "\"");
             return;
         }
@@ -74,15 +75,15 @@ public class EnviadorCorreo {
     }
 
     /** Guarda el HTML en disco para ver cómo se vería el correo sin un servidor SMTP. */
-    private void guardarVistaPrevia(String destino, PlantillaCorreo.Correo correo) {
+    private void guardarVistaPrevia(PlantillaCorreo.Correo correo) {
         if (rutaVistaPrevia == null || rutaVistaPrevia.isBlank()) {
             return;
         }
         try {
             Path carpeta = Paths.get(rutaVistaPrevia);
             Files.createDirectories(carpeta);
-            String usuario = destino == null ? "anonimo" : destino.replaceAll("[^A-Za-z0-9]", "_");
-            Path archivo = carpeta.resolve(LocalDateTime.now().format(MARCA) + "_" + usuario + ".html");
+            // El nombre del archivo no usa datos del usuario (evita rutas construidas con datos externos).
+            Path archivo = carpeta.resolve(LocalDateTime.now().format(MARCA) + "_" + UUID.randomUUID() + ".html");
             Files.writeString(archivo, correo.html(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             logger.log(Level.WARNING, "No se pudo guardar la vista previa del correo", e);

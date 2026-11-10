@@ -44,8 +44,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil, ListaTokensRevocados revocados,
                                            UsuarioServiceAPI usuarioServiceAPI) throws Exception {
+        // CSRF no aplica: la API es stateless (SessionCreationPolicy.STATELESS) y se autentica con el JWT en el
+        // encabezado Authorization, no con cookies, así que el navegador no envía credenciales automáticamente.
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable()) // NOSONAR java:S4502 — API REST sin sesión ni cookies (ver comentario)
             .cors(Customizer.withDefaults())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex
