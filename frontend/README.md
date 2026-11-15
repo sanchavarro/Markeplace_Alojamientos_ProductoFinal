@@ -91,6 +91,30 @@ El backend crea al iniciar el administrador `admin@marketplace.com` / `Admin2026
 
 ---
 
+## Abrir la app (y los enlaces de los correos) desde cualquier dispositivo, sin desplegar
+
+`localhost` solo existe en el computador que corre el proyecto. Para probar desde otro PC o celular, en cualquier red, se expone con un túnel gratuito mientras el computador esté encendido:
+
+```bash
+brew install cloudflared
+cloudflared tunnel --url http://localhost:8080   # backend  → https://AAA.trycloudflare.com
+cloudflared tunnel --url http://localhost:5173   # frontend → https://BBB.trycloudflare.com (otra terminal)
+```
+
+1. `backend/.env`: `FRONTEND_URL=https://BBB.trycloudflare.com` y `ALMACENAMIENTO_URL=https://AAA.trycloudflare.com/imagenes`; reinicia el backend.
+2. `frontend/.env`: `VITE_API_BASE_URL=https://AAA.trycloudflare.com`; reinicia `npm run dev`.
+3. Comparte `https://BBB.trycloudflare.com`. Los correos nuevos llevarán esa dirección.
+
+Las URLs del túnel cambian cada vez que lo inicias: actualiza los dos `.env` en cada sesión.
+
+## Despliegue (Azure)
+
+1. Backend (App Service): configura `FRONTEND_URL` con la URL pública del frontend. Es la que usan los enlaces de los correos; si queda en `localhost`, los botones del correo solo abren en el computador que corre el backend.
+2. Frontend (Static Web Apps): compila con `VITE_API_BASE_URL=https://tu-backend.azurewebsites.net npm run build` y publica la carpeta `dist/`.
+3. `public/staticwebapp.config.json` redirige cualquier ruta a `index.html`, para que enlaces como `/verificar-correo?correo=...` o `/restablecer?token=...` que llegan por correo abran directo y no den 404.
+
+---
+
 ## 3. Arquitectura
 
 ```

@@ -10,7 +10,6 @@ import co.edu.unbosque.service.api.ServicioServiceAPI;
 /**
  * Catálogos públicos: políticas de cancelación y servicios incluidos.
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/catalogo")
 public class CatalogoRestController {

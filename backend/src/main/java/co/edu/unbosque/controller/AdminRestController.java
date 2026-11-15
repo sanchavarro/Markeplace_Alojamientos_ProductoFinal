@@ -16,7 +16,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E11 · Administración (HU-41 a HU-45). Solo rol ADMINISTRADOR.
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/admin")
 public class AdminRestController {

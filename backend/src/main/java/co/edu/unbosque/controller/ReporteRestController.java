@@ -18,7 +18,6 @@ import co.edu.unbosque.utils.Utilidad;
 /**
  * Épicas E12 · Dashboard (HU-46) y E13 · Reportes (HU-47, HU-48). Solo rol ADMINISTRADOR.
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/reportes")
 public class ReporteRestController {

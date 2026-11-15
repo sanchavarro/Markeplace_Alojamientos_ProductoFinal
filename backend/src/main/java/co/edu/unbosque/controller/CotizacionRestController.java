@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E06 · Cotización (HU-23 a HU-25).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/cotizaciones")
 public class CotizacionRestController {

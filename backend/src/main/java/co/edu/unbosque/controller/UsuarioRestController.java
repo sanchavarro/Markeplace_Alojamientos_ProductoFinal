@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E02 · Perfil (HU-05, HU-06).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioRestController {

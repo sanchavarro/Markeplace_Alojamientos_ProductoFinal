@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E01 · Registro e inicio de sesión (HU-01 a HU-04, HU-06).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/auth")
 public class AuthRestController {

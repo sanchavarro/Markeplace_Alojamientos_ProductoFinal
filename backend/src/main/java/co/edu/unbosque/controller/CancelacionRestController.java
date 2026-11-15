@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E08 · Cancelación (HU-32 a HU-35).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/reservas/{id}/cancelacion")
 public class CancelacionRestController {

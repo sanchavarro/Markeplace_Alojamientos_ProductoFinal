@@ -99,4 +99,14 @@ class CorreoTest {
         verify(enviador).enviar(eq("ana@prueba.com"),
                 argThat(c -> c.html().contains("/mis-reservas") && c.asunto().startsWith("Reserva confirmada")));
     }
+
+    @Test
+    void detectaCuandoLosEnlacesApuntanALocalhost() {
+        assertTrue(NotificadorCorreo.apuntaALocalhost("http://localhost:5173"));
+        assertTrue(NotificadorCorreo.apuntaALocalhost("http://127.0.0.1:5173"));
+        assertTrue(!NotificadorCorreo.apuntaALocalhost("https://marketplace.azurestaticapps.net"));
+        NotificadorCorreo n = new NotificadorCorreo();
+        ReflectionTestUtils.setField(n, "urlFrontend", "http://localhost:5173");
+        n.revisarUrlFrontend();
+    }
 }

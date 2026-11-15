@@ -9,6 +9,9 @@ export default defineConfig({
     host: 'localhost',
     port: 5173,
     strictPort: true,
+    // Permite abrir el servidor de desarrollo a través de un túnel público (cloudflared / ngrok),
+    // para que los enlaces de los correos funcionen desde cualquier dispositivo.
+    allowedHosts: ['.trycloudflare.com', '.ngrok-free.app', '.ngrok.io'],
   },
   preview: {
     host: 'localhost',

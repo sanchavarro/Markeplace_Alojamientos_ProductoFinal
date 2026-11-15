@@ -12,7 +12,6 @@ import co.edu.unbosque.service.api.BusquedaServiceAPI;
 /**
  * Épica E05 · Búsqueda (HU-19 a HU-22). Pública y paginada (ADR-08).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/busqueda")
 public class BusquedaRestController {

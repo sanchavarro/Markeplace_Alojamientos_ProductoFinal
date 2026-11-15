@@ -70,3 +70,24 @@ Para correos reales o Stripe en modo pruebas, copia `backend/.env.example` como 
 - Todo el texto dinámico se escapa (sin inyección de HTML).
 - Con `correo.modo=simulado` cada correo se guarda como `.html` en `logs/correos/` (`correo.vista.previa.ruta`) para revisar el diseño sin servidor SMTP.
 - Nuevas pruebas: `PlantillaCorreoTest` y `ServicioCaptchaTest`.
+
+
+### Enlaces de los correos y despliegue
+
+Los botones de los correos (confirmar correo, crear nueva clave, ver reservas) usan `app.frontend.url`. Con el valor por defecto (`http://localhost:5173`) solo abren en el computador que corre el proyecto: desde otro PC o el celular "localhost" es ese otro equipo. Al arrancar con ese valor el backend lo advierte en el log.
+
+En el despliegue configura estas variables (App Service → Configuración → Variables de entorno):
+
+| Variable | Ejemplo |
+|---|---|
+| `FRONTEND_URL` | `https://tu-frontend.azurestaticapps.net` (enlaces de los correos y CORS) |
+| `CORS_ORIGENES` | orígenes extra separados por coma (opcional) |
+| `ALMACENAMIENTO_URL` | `https://tu-backend.azurewebsites.net/imagenes` |
+| `DB_URL`, `DB_USUARIO`, `DB_CLAVE` | datos de Azure Database for PostgreSQL |
+| `JWT_SECRET` | secreto largo y aleatorio |
+| `CORREO_MODO`, `CORREO_USUARIO`, `CORREO_CLAVE` | Gmail con contraseña de aplicación |
+| `ADMIN_CLAVE`, `DATOS_DEMO_CLAVE` | claves del administrador inicial y de las cuentas demo (el repositorio es público) |
+| `ALMACENAMIENTO_RUTA` | `/home/uploads/imagenes` (carpeta persistente de App Service) |
+| `PORT` | lo define Azure (por defecto 8080) |
+
+CORS se configura en un solo lugar (`SecurityConfig`); se quitaron los `@CrossOrigin` fijos a `localhost:5173` de los controladores.
