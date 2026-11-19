@@ -1,8 +1,10 @@
 package co.edu.unbosque.utils;
 
+import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.PostConstruct;
 import co.edu.unbosque.entity.Usuario;
 import co.edu.unbosque.service.api.UsuarioServiceAPI;
 
@@ -22,6 +24,21 @@ public class NotificadorCorreo extends Notificador {
 
     @Value("${app.frontend.url}")
     private String urlFrontend;
+
+    private static final Logger logger = Logger.getLogger(NotificadorCorreo.class.getName());
+
+    /** Avisa al arrancar si los enlaces de los correos van a apuntar a localhost. */
+    @PostConstruct
+    void revisarUrlFrontend() {
+        if (apuntaALocalhost(urlFrontend)) {
+            logger.warning("app.frontend.url=" + urlFrontend + " : los enlaces de los correos solo abrirán en este "
+                    + "computador. En el despliegue configura FRONTEND_URL con la URL pública del frontend.");
+        }
+    }
+
+    static boolean apuntaALocalhost(String url) {
+        return url == null || url.contains("localhost") || url.contains("127.0.0.1");
+    }
 
     @Override
     protected CanalNotificacion crearCanal() {
