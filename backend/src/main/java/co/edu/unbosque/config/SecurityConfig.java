@@ -36,6 +36,10 @@ public class SecurityConfig {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    /** Orígenes adicionales permitidos en CORS (app.cors.origenes, separados por coma). */
+    @Value("${app.cors.origenes:}")
+    private String origenesAdicionales;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -100,6 +104,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOrigin(frontendUrl);
+        for (String origen : origenesAdicionales.split(",")) {
+            if (!origen.isBlank()) {
+                config.addAllowedOriginPattern(origen.trim());
+            }
+        }
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         config.addExposedHeader("X-Correlation-Id");

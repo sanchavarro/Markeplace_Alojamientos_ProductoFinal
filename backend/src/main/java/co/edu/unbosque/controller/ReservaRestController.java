@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
  * Épica E07 · Reserva (HU-26 a HU-31).
  * El encabezado Idempotency-Key (UUID) es obligatorio para crear o pagar (ADR-03).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/reservas")
 public class ReservaRestController {

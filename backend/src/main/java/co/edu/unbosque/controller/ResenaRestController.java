@@ -13,7 +13,6 @@ import jakarta.validation.Valid;
 /**
  * Épica E10 · Reseñas y calificaciones (HU-38, HU-39). La consulta está en GET /alojamientos/{id}/resenas.
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/resenas")
 public class ResenaRestController {
