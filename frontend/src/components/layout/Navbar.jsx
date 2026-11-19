@@ -32,11 +32,16 @@ const ENLACES_POR_ROL = {
 export function Logo() {
   return (
     <Link to="/" className="flex items-center gap-2.5" aria-label="Estancia, inicio">
-      <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-ink">
-        <svg viewBox="0 0 64 64" className="h-5 w-5" aria-hidden="true">
-          <path d="M18 34 32 21l14 13v13a3 3 0 0 1-3 3h-7V39h-8v11h-7a3 3 0 0 1-3-3Z" fill="#fff" />
-        </svg>
-      </span>
+      <svg viewBox="0 0 64 64" className="h-8 w-8 shrink-0" aria-hidden="true">
+        <defs>
+          <linearGradient id="logo-estancia" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#F0607A" />
+            <stop offset="1" stopColor="#D23A50" />
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="15" fill="url(#logo-estancia)" />
+        <path d="M32 12.5 9.5 31.2a2.6 2.6 0 0 0 3.3 4L16 32.6V49a4 4 0 0 0 4 4h8.5V41.5a3.5 3.5 0 0 1 7 0V53H44a4 4 0 0 0 4-4V32.6l3.2 2.6a2.6 2.6 0 0 0 3.3-4Z" fill="#fff" />
+      </svg>
       <span className="flex flex-col leading-none">
         <span className="text-[18px] font-semibold tracking-tight text-ink">Estancia</span>
         <span className="mt-0.5 text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-faint">Inicio</span>
