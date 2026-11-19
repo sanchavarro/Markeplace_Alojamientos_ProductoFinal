@@ -11,7 +11,6 @@ import co.edu.unbosque.utils.Utilidad;
 /**
  * Épica E09 · Notificaciones (HU-36, HU-37).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/notificaciones")
 public class NotificacionRestController {

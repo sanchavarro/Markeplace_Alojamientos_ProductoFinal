@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 /**
  * HU-24 · Configurar porcentajes de tarifas (administrador).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/tarifas")
 public class TarifaRestController {

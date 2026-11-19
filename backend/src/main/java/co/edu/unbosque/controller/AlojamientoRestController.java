@@ -25,7 +25,6 @@ import jakarta.validation.Valid;
 /**
  * Épicas E03 · Alojamientos y publicaciones (HU-07 a HU-15) y E04 · Disponibilidad (HU-16, HU-17).
  */
-@CrossOrigin(origins = "http://localhost:5173", maxAge = 3600)
 @RestController
 @RequestMapping("/alojamientos")
 public class AlojamientoRestController {
