@@ -107,6 +107,12 @@ cloudflared tunnel --url http://localhost:5173   # frontend → https://BBB.tryc
 
 Las URLs del túnel cambian cada vez que lo inicias: actualiza los dos `.env` en cada sesión.
 
+## Despliegue (Azure)
+
+1. Backend (App Service): configura `FRONTEND_URL` con la URL pública del frontend. Es la que usan los enlaces de los correos; si queda en `localhost`, los botones del correo solo abren en el computador que corre el backend.
+2. Frontend (Static Web Apps): compila con `VITE_API_BASE_URL=https://tu-backend.azurewebsites.net npm run build` y publica la carpeta `dist/`.
+3. `public/staticwebapp.config.json` redirige cualquier ruta a `index.html`, para que enlaces como `/verificar-correo?correo=...` o `/restablecer?token=...` que llegan por correo abran directo y no den 404.
+
 ---
 
 ## 3. Arquitectura
